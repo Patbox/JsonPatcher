@@ -3,20 +3,20 @@ package io.github.mattidragon.jsonpatcher.patch;
 import io.github.mattidragon.jsonpatcher.JsonPatcher;
 import io.github.mattidragon.jsonpatcher.misc.DumpManager;
 import io.github.mattidragon.jsonpatcher.misc.ResourceAccess;
-import net.minecraft.resource.Resource;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.resource.ResourceType;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.Unit;
 
 public class PatchingContext {
     private static final ThreadLocal<Unit> DISABLED = new ThreadLocal<>();
 
-    private final ResourceType resourceType;
+    private final PackType resourceType;
     private boolean loaded = false;
     private Patcher patcher = null;
 
-    public PatchingContext(ResourceType resourceType) {
+    public PatchingContext(PackType resourceType) {
         this.resourceType = resourceType;
     }
 

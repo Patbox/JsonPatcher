@@ -3,25 +3,32 @@ package io.github.mattidragon.jsonpatcher.metapatch;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.minecraft.SharedConstants;
-import net.minecraft.resource.*;
-import net.minecraft.resource.metadata.ResourceMetadataSerializer;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.AbstractPackResources;
+import net.minecraft.server.packs.PackLocationInfo;
+import net.minecraft.server.packs.PackResources;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.metadata.MetadataSectionType;
+import net.minecraft.server.packs.repository.PackSource;
+import net.minecraft.server.packs.resources.IoSupplier;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.server.packs.resources.ResourceMetadata;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.util.*;
 import java.util.function.Predicate;
 
-public class MetapatchResourcePack implements ResourcePack {
+public class MetapatchResourcePack implements PackResources {
     public static final Gson GSON = new Gson();
 
-    public final ResourceType type;
+    public final PackType type;
     private final Map<Identifier, JsonObject> files = new HashMap<>();
     private final List<FileFilter> filters = new ArrayList<>();
     private final Set<String> namespaces = new HashSet<>();
 
-    public MetapatchResourcePack(ResourceType type) {
+    public MetapatchResourcePack(PackType type) {
         this.type = type;
     }
 
@@ -62,13 +69,13 @@ public class MetapatchResourcePack implements ResourcePack {
 
     @Nullable
     @Override
-    public InputSupplier<InputStream> openRoot(String... segments) {
+    public IoSupplier<InputStream> getRootResource(String... segments) {
         return null;
     }
 
     @Nullable
     @Override
-    public InputSupplier<InputStream> open(ResourceType type, Identifier id) {
+    public IoSupplier<InputStream> getResource(PackType type, Identifier id) {
         if (type != this.type) return null;
         var file = files.get(id);
         if (file == null) return null;
@@ -83,34 +90,34 @@ public class MetapatchResourcePack implements ResourcePack {
     }
 
     @Override
-    public void findResources(ResourceType type, String namespace, String prefix, ResultConsumer consumer) {
+    public void listResources(PackType type, String namespace, String prefix, ResourceOutput consumer) {
         if (type != this.type) return;
 
         files.forEach((id, file) -> {
             if (id.getNamespace().equals(namespace) && id.getPath().startsWith(prefix)) {
-                consumer.accept(id, open(type, id));
+                consumer.accept(id, getResource(type, id));
             }
         });
     }
 
     @Override
-    public Set<String> getNamespaces(ResourceType type) {
+    public Set<String> getNamespaces(PackType type) {
         return namespaces;
     }
 
     @Nullable
     @Override
-    public <T> T parseMetadata(ResourceMetadataSerializer<T> metadataSerializer) throws IOException {
+    public <T> T getMetadataSection(MetadataSectionType<T> metadataSerializer) throws IOException {
         var metadata = getMetadata(type);
         var stream = new ByteArrayInputStream(metadata.getBytes());
-        return AbstractFileResourcePack.parseMetadata(metadataSerializer, stream);
+        return ResourceMetadata.fromJsonStream(stream).getSection(metadataSerializer).orElseThrow();
     }
 
     @Override
-    public ResourcePackInfo getInfo() {
-        return new ResourcePackInfo("jsonpatcher:meta_patch", 
-                Text.literal("JsonPatcher MetaPatch Resource Pack"), 
-                ResourcePackSource.BUILTIN, 
+    public PackLocationInfo location() {
+        return new PackLocationInfo("jsonpatcher:meta_patch", 
+                Component.literal("JsonPatcher MetaPatch Resource Pack"), 
+                PackSource.BUILT_IN, 
                 Optional.empty());
     }
 
@@ -119,7 +126,7 @@ public class MetapatchResourcePack implements ResourcePack {
 
     }
 
-    private static String getMetadata(ResourceType type) {
+    private static String getMetadata(PackType type) {
         return """
             {
               "pack": {
@@ -127,12 +134,12 @@ public class MetapatchResourcePack implements ResourcePack {
                 "description": "JsonPatcher MetaPatch Resource Pack"
               }
             }
-            """.formatted(SharedConstants.getGameVersion().getResourceVersion(type));
+            """.formatted(SharedConstants.getCurrentVersion().packVersion(type));
     }
 
     @Nullable
     public Resource makeResource(Identifier id) {
-        var supplier = open(type, id);
+        var supplier = getResource(type, id);
         if (supplier != null) {
             return new Resource(this, supplier);
         }

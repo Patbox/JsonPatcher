@@ -10,12 +10,11 @@ import io.github.mattidragon.jsonpatcher.misc.GsonConverter;
 import io.github.mattidragon.jsonpatcher.misc.ValueOps;
 import io.github.mattidragon.jsonpatcher.patch.PatchTarget;
 import io.github.mattidragon.jsonpatcher.patch.PatchingContext;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.util.Identifier;
-
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.ResourceManager;
 
 @SuppressWarnings("unused")
 public class MetapatchLibrary {
@@ -91,7 +90,7 @@ public class MetapatchLibrary {
             var resource = resourceManager.getResource(id);
             if (resource.isPresent()) {
                 try {
-                    return GsonConverter.fromGson(MetapatchResourcePack.GSON.fromJson(new InputStreamReader(resource.get().getInputStream()), JsonObject.class));
+                    return GsonConverter.fromGson(MetapatchResourcePack.GSON.fromJson(new InputStreamReader(resource.get().open()), JsonObject.class));
                 } catch (IllegalStateException e) {
                     throw new EvaluationException(context.context().config(), "Failed to convert from json: " + e.getMessage(), context.callPos());
                 } catch (IOException e) {

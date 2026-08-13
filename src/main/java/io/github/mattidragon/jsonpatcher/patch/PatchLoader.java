@@ -6,12 +6,6 @@ import io.github.mattidragon.jsonpatcher.config.ConfigProvider;
 import io.github.mattidragon.jsonpatcher.lang.parse.Lexer;
 import io.github.mattidragon.jsonpatcher.lang.parse.Parser;
 import io.github.mattidragon.jsonpatcher.misc.ValueOps;
-import net.minecraft.resource.Resource;
-import net.minecraft.resource.ResourceFinder;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
@@ -24,12 +18,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.FileToIdConverter;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.server.packs.resources.ResourceManager;
 
 public class PatchLoader {
-    private static final ResourceFinder finder = new ResourceFinder("jsonpatch", ".jsonpatch");
+    private static final FileToIdConverter finder = new FileToIdConverter("jsonpatch", ".jsonpatch");
 
     public static PatchStorage load(Executor executor, ResourceManager manager) {
-        var files = finder.findResources(manager);
+        var files = finder.listMatchingResources(manager);
         var futures = new ArrayList<CompletableFuture<Void>>();
         var patches = Collections.synchronizedList(new ArrayList<Patch>());
         var errorCount = new AtomicInteger(0);
@@ -44,7 +44,7 @@ public class PatchLoader {
         CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
         if (errorCount.get() > 0) {
             var message = "Failed to load %s patch(es). See logs/jsonpatch.log for details".formatted(errorCount.get());
-            ErrorLogger.CURRENT.get().accept(Text.literal(message).formatted(Formatting.RED));
+            ErrorLogger.CURRENT.get().accept(Component.literal(message).withStyle(ChatFormatting.RED));
             JsonPatcher.MAIN_LOGGER.error(message);
             if (Config.MANAGER.get().throwOnFailure()) {
                 throw new IllegalStateException(message);
@@ -55,11 +55,11 @@ public class PatchLoader {
 
     @Nullable
     private static Patch loadPatch(Map.Entry<Identifier, Resource> entry, AtomicInteger errorCount) {
-        var id = finder.toResourceId(entry.getKey());
+        var id = finder.fileToId(entry.getKey());
         var resource = entry.getValue();
 
         try {
-            var code = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            var code = new String(resource.open().readAllBytes(), StandardCharsets.UTF_8);
             var lexResult = Lexer.lex(ConfigProvider.INSTANCE, code, id.toString());
 
             var parseResult = Parser.parse(ConfigProvider.INSTANCE, lexResult.tokens());

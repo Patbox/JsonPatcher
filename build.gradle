@@ -1,9 +1,9 @@
 plugins {
-    id 'fabric-loom' version '1.7-SNAPSHOT'
+    id 'net.fabricmc.fabric-loom' version '1.16-SNAPSHOT'
     id 'maven-publish'
 }
 
-version project.mod_version + "+mc.$minecraft_version"
+version project.mod_version + "+mc.$minecraft_version-legacy-pb"
 group project.maven_group
 base.archivesName = project.archives_base_name
 
@@ -61,19 +61,18 @@ sourceSets.test {
 
 dependencies {
     minecraft "com.mojang:minecraft:$minecraft_version"
-    mappings "net.fabricmc:yarn:$yarn_mappings:v2"
-    modImplementation "net.fabricmc:fabric-loader:$loader_version"
+    implementation "net.fabricmc:fabric-loader:$loader_version"
 
-    modImplementation "net.fabricmc.fabric-api:fabric-api:$fabric_version"
+    implementation "net.fabricmc.fabric-api:fabric-api:$fabric_version"
 
 //    include(implementation("io.github.mattidragon.jsonpatch:JsonPatcher-Lang:$lang_version"))
     include(implementation("com.github.mattidragon.JsonPatcherLang:JsonPatcher-Lang:$lang_version"))
     include(implementation("com.github.mattidragon.JsonPatcherLang:JsonPatcher-Docs:$lang_version"))
 
     // Config
-    modImplementation include("com.github.mattidragon:ConfigToolkit:$configtoolkit_version")
+    implementation include("com.github.mattidragon:ConfigToolkit:$configtoolkit_version")
     annotationProcessor clientAnnotationProcessor("com.github.mattidragon:ConfigToolkit:$configtoolkit_version")
-    modCompileOnly(modLocalRuntime("com.terraformersmc:modmenu:$modmenu_version"))
+    compileOnly(localRuntime("com.terraformersmc:modmenu:$modmenu_version"))
 
     // Make testmod depend on the client source set. Main is handled by gradle automatically.
     testImplementation sourceSets.client.output
@@ -89,9 +88,9 @@ tasks.withType(ProcessResources).configureEach {
 }
 
 tasks.withType(JavaCompile).configureEach {
-    it.options.release.set 21
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    it.options.release.set 25
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 java {

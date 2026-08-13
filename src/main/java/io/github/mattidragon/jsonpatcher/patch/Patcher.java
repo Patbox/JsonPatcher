@@ -15,13 +15,6 @@ import io.github.mattidragon.jsonpatcher.metapatch.MetapatchLibrary;
 import io.github.mattidragon.jsonpatcher.misc.DumpManager;
 import io.github.mattidragon.jsonpatcher.misc.GsonConverter;
 import io.github.mattidragon.jsonpatcher.misc.MetaPatchPackAccess;
-import net.minecraft.resource.InputSupplier;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.resource.ResourceType;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.JsonHelper;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,14 +23,21 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.IoSupplier;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.util.GsonHelper;
 
 public class Patcher {
     public static final ExecutorService PATCH_RUNNER = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("JsonPatcher-Patch-Runner").factory());
     private static final Gson GSON = new Gson();
-    private final ResourceType resourceType;
+    private final PackType resourceType;
     private final PatchStorage patches;
 
-    public Patcher(ResourceType resourceType, PatchStorage patches) {
+    public Patcher(PackType resourceType, PatchStorage patches) {
         this.resourceType = resourceType;
         this.patches = patches;
     }
@@ -48,7 +48,7 @@ public class Patcher {
 
     private JsonElement applyPatches(JsonElement json, Identifier id) {
         var errors = new ArrayList<Exception>();
-        var activeJson = new MutableObject<>(JsonHelper.asObject(json, "patched file"));
+        var activeJson = new MutableObject<>(GsonHelper.convertToJsonObject(json, "patched file"));
         try {
             for (var patch : patches.getPatches(id)) {
                 var root = GsonConverter.fromGson(activeJson.getValue());
@@ -68,7 +68,7 @@ public class Patcher {
         if (!errors.isEmpty()) {
             errors.forEach(error -> JsonPatcher.RELOAD_LOGGER.error("Error while patching {}", id, error));
             var message = "Encountered %s error(s) while patching %s. See logs/jsonpatch.log for details".formatted(errors.size(), id);
-            ErrorLogger.CURRENT.get().accept(Text.literal(message).formatted(Formatting.RED));
+            ErrorLogger.CURRENT.get().accept(Component.literal(message).withStyle(ChatFormatting.RED));
             if (Config.MANAGER.get().throwOnFailure()) {
                 throw new PatchingException(message);
             } else {
@@ -125,7 +125,7 @@ public class Patcher {
         return builder.build();
     }
 
-    public InputSupplier<InputStream> patchInputStream(Identifier id, InputSupplier<InputStream> stream) {
+    public IoSupplier<InputStream> patchInputStream(Identifier id, IoSupplier<InputStream> stream) {
         if (!hasPatches(id)) return stream;
 
         try {
@@ -181,7 +181,7 @@ public class Patcher {
             errors.forEach(error -> JsonPatcher.RELOAD_LOGGER.error("Error while running meta patch", error));
             var message = "Encountered %s error(s) while running meta patches. See logs/jsonpatch.log for details".formatted(errors.size());
 
-            ErrorLogger.CURRENT.get().accept(Text.literal(message).formatted(Formatting.RED));
+            ErrorLogger.CURRENT.get().accept(Component.literal(message).withStyle(ChatFormatting.RED));
             if (Config.MANAGER.get().throwOnFailure()) {
                 throw new PatchingException(message);
             } else {

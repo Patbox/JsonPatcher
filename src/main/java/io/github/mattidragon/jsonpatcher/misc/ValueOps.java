@@ -52,6 +52,16 @@ public class ValueOps implements DynamicOps<Value> {
     }
 
     @Override
+    public DataResult<Boolean> getBooleanValue(Value value) {
+        return DataResult.success(value.asBoolean());
+    }
+
+    @Override
+    public Value createBoolean(boolean b) {
+        return Value.BooleanValue.of(b);
+    }
+
+    @Override
     public DataResult<String> getStringValue(Value input) {
         if (input instanceof Value.StringValue string) {
             return DataResult.success(string.value());

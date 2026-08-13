@@ -5,7 +5,7 @@ import io.github.mattidragon.jsonpatcher.misc.DumpManager;
 import io.github.mattidragon.jsonpatcher.patch.ErrorLogger;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.appender.RandomAccessFileAppender;
@@ -28,7 +28,7 @@ public class JsonPatcher implements ModInitializer {
     }
 
     public static Identifier id(String path) {
-        return Identifier.of(MOD_ID, path);
+        return Identifier.fromNamespaceAndPath(MOD_ID, path);
     }
 
     @Override
@@ -37,10 +37,10 @@ public class JsonPatcher implements ModInitializer {
         DumpManager.cleanDump("");
 
         ServerLifecycleEvents.SERVER_STARTING.register(server -> ErrorLogger.CURRENT.set(error -> {
-            var manager = server.getPlayerManager();
-            for (var player : manager.getPlayerList()) {
-                if (manager.isOperator(player.getGameProfile())) {
-                    player.sendMessage(error);
+            var manager = server.getPlayerList();
+            for (var player : manager.getPlayers()) {
+                if (manager.isOp(player.nameAndId())) {
+                    player.sendSystemMessage(error);
                 }
             }
         }));

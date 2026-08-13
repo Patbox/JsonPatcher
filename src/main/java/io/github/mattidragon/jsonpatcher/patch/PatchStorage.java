@@ -7,9 +7,8 @@ import io.github.mattidragon.jsonpatcher.lang.parse.SourceSpan;
 import io.github.mattidragon.jsonpatcher.lang.runtime.EvaluationContext;
 import io.github.mattidragon.jsonpatcher.lang.runtime.EvaluationException;
 import io.github.mattidragon.jsonpatcher.lang.runtime.Value;
-import net.minecraft.util.Identifier;
-
 import java.util.*;
+import net.minecraft.resources.Identifier;
 
 public class PatchStorage implements EvaluationContext.LibraryLocator {
     private final Multimap<String, Patch> namespacePatches = LinkedHashMultimap.create();
